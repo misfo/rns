@@ -4,7 +4,7 @@ module Kernel
   def Rns(*imports, &block)
     klass = Class.new(Rns::Namespace, &block)
     klass.import(imports)
-    klass.freeze.new.freeze
+    klass.freeze.send(:new).freeze
   end
 end
 
@@ -13,30 +13,34 @@ module Rns
   end
 
   class Namespace
-    def self.import(imports)
-      @_import_hash = Rns.array_to_key_value_tuples(imports).reduce({}) do |h, (obj, methods)|
-        if !obj.frozen?
-          raise ImportError, "#{obj} cannot be imported into a Namespace because it is not frozen"
-        elsif !obj.class.frozen?
-          raise ImportError, "#{obj} cannot be imported into a Namespace because its class is not frozen"
-        end
-        (methods || obj.public_methods(false)).each do |method|
-          h[method.to_sym] = obj
-        end
-        h
-      end
+    class << self
+      private :new
 
-      # file, line = caller[2].split(':', 2)
-      # line = line.to_i
-      @_import_hash.each do |method, _|
-        source = <<-EOS
-          def #{method}(*args, &block)
-            reciever = self.class.instance_variable_get(:@_import_hash).fetch(:#{method})
-            reciever.__send__(:#{method}, *args, &block)
+      def import(imports)
+        @_import_hash = Rns.array_to_key_value_tuples(imports).reduce({}) do |h, (obj, methods)|
+          if !obj.frozen?
+            raise ImportError, "#{obj} cannot be imported into a Namespace because it is not frozen"
+          elsif !obj.class.frozen?
+            raise ImportError, "#{obj} cannot be imported into a Namespace because its class is not frozen"
           end
-        EOS
-        module_eval(source) #, file, line - 2)
-        private method
+          (methods || obj.public_methods(false)).each do |method|
+            h[method.to_sym] = obj
+          end
+          h
+        end
+
+        # file, line = caller[2].split(':', 2)
+        # line = line.to_i
+        @_import_hash.each do |method, _|
+          source = <<-EOS
+            def #{method}(*args, &block)
+              reciever = self.class.instance_variable_get(:@_import_hash).fetch(:#{method})
+              reciever.__send__(:#{method}, *args, &block)
+            end
+          EOS
+          module_eval(source) #, file, line - 2)
+          private method
+        end
       end
     end
   end
