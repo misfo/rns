@@ -9,9 +9,17 @@ module Kernel
 end
 
 module Rns
+  class ImportError < StandardError
+  end
+
   class Namespace
     def self.import(imports)
       @_import_hash = Rns.array_to_key_value_tuples(imports).reduce({}) do |h, (obj, methods)|
+        if !obj.frozen?
+          raise ImportError, "#{obj} cannot be imported into a Namespace because it is not frozen"
+        elsif !obj.class.frozen?
+          raise ImportError, "#{obj} cannot be imported into a Namespace because its class is not frozen"
+        end
         (methods || obj.public_methods(false)).each do |method|
           h[method.to_sym] = obj
         end

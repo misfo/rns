@@ -113,6 +113,18 @@ class RnsTest < MiniTest::Unit::TestCase
     end
   end
 
+  def test_mutable_objects_cant_be_imported_from
+    assert_raises Rns::ImportError do
+      Rns(IO) {}
+    end
+  end
+
+  def test_objects_of_mutable_classes_cant_be_imported_from
+    assert_raises Rns::ImportError do
+      Rns(Object.new.freeze) {}
+    end
+  end
+
 private
 
   def assert_raises_frozen_error
