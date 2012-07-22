@@ -1,7 +1,7 @@
 require 'rns/version'
 
 module Kernel
-  # Returns a stateless namespace of functions
+  # Returns an immutable namespace of functions
   #
   # * `imports` can be any number of other namespaces from which to import functions or hashes
   #   specifying which functions to import.
