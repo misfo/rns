@@ -1,45 +1,47 @@
+require 'rns/version'
+
+module Kernel
+  def Rns(*imports, &block)
+    klass = Class.new(Rns::Namespace, &block)
+    klass.import(imports)
+    klass.freeze.new.freeze
+  end
+end
+
 module Rns
-  class << self
-    def constant_for(module_names)
-      (m, *more) = module_names.map{|n| n.split("::")}.flatten
-      more.reduce(Kernel.const_get(m)){|m, s| m.const_get(s)}
-    end
-
-    def use(use_spec)
-      Module.new.tap {|m| add_methods(m, use_spec) }
-    end
-
-    def process_spec_entry(entry)
-      (k,v) = entry
-      if (v.is_a? Array)
-        v.map{|x| process_spec_entry([k,x])}
-      elsif (v.is_a? Hash)
-        v.map do |x,y|
-          process_spec_entry([constant_for([k, x].map(&:to_s)), y])
+  class Namespace
+    def self.import(imports)
+      @_import_hash = Rns.array_to_key_value_tuples(imports).reduce({}) do |h, (obj, methods)|
+        (methods || obj.public_methods(false)).each do |method|
+          h[method.to_sym] = obj
         end
-      else
-        [k,v]
+        h
+      end
+
+      # file, line = caller[2].split(':', 2)
+      # line = line.to_i
+      @_import_hash.each do |method, _|
+        source = <<-EOS
+          def #{method}(*args, &block)
+            reciever = self.class.instance_variable_get(:@_import_hash).fetch(:#{method})
+            reciever.__send__(:#{method}, *args, &block)
+          end
+        EOS
+        module_eval(source) #, file, line - 2)
+        private method
       end
     end
+  end
 
-    def process_spec(use_spec)
-      use_spec.map(&method(:process_spec_entry)).
-        flatten.
-        each_slice(2).
-        to_a
-    end
-
-    def add_methods(to, use_spec)
-      process_spec(use_spec).each do |from, method|
-        to.send(:define_method, method, &from.method(method))
-        to.send(:private, method)
+  class << self
+    def array_to_key_value_tuples(array)
+      array.reduce([]) do |tuples, elem|
+        if elem.is_a? Hash
+          tuples + Array(elem)
+        else
+          tuples << [elem, nil]
+        end
       end
-    end
-
-    def using(use_spec, &blk)
-      klass = Class.new
-      add_methods(klass, use_spec)
-      klass.new.instance_eval(&blk)
     end
   end
 end
