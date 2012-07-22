@@ -24,12 +24,14 @@ module Rns
           elsif !obj.class.frozen?
             raise ImportError, "#{obj} cannot be imported into Namespace because its class is not frozen"
           end
+
           (methods || obj.public_methods(false)).each do |method|
             if ns_methods.include? method
               raise ImportError, "cannot override #{method} with an import"
             end
             h[method.to_sym] = obj.method(method)
           end
+
           h
         end
 

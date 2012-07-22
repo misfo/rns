@@ -135,6 +135,32 @@ class RnsTest < MiniTest::Unit::TestCase
     end
   end
 
+  def test_error_backtraces_include_point_of_import
+    ns = Rns do
+      def kablammo!
+        raise "kablammo!"
+      end
+    end
+
+    import_line = __LINE__ + 1
+    ns2 = Rns(ns => [:kablammo!]) do
+      def totally_safe
+        kablammo!
+      end
+    end
+
+    begin
+      ns2.totally_safe
+    rescue => e
+      import_frame = e.backtrace[1]
+      file, line = import_frame.split(':', 2)
+      assert_equal __FILE__, file
+      assert_equal import_line, line.to_i
+    else
+      flunk "Expected an error on import"
+    end
+  end
+
 private
 
   def assert_raises_frozen_error
