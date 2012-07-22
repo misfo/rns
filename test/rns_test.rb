@@ -125,6 +125,16 @@ class RnsTest < MiniTest::Unit::TestCase
     end
   end
 
+  def test_imports_cannot_override_functions
+    assert_raises Rns::ImportError do
+      Rns(Math => [:inc]) do
+        def inc
+          "Can I be overridden?"
+        end
+      end
+    end
+  end
+
 private
 
   def assert_raises_frozen_error
