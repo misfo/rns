@@ -1,6 +1,22 @@
 require 'rns/version'
 
 module Kernel
+  # Returns a stateless namespace of functions
+  #
+  # * `imports` can be any number of other namespaces from which to import functions or hashes
+  #   specifying which functions to import.
+  # * The block contains the functions to be `def`ed for the namespace.
+  #
+  # Example:
+  #
+  #     StringManipulation = Rns(SomeOtherNs, AnotherNs => [:alternate_case]) do
+  #       def crazy_string(str)
+  #         "#{alternate_case str}!"
+  #       end
+  #     end
+  #
+  #     StringManipulation.crazy_string("whoa") #=> "WhOa!"
+  #
   def Rns(*imports, &block)
     klass = Class.new(Rns::Namespace, &block)
     klass.import(imports)

@@ -30,7 +30,7 @@ class Main
 
   def main
     nums = [1, 2, 3]
-    puts "The sum of #{nums.inspect} incremented is: #{Funcs.incremented_avg nums}"
+    puts "The average of #{nums.inspect} incremented is: #{Funcs.incremented_avg nums}"
   end
 end
 
