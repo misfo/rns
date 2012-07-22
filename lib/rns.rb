@@ -9,13 +9,17 @@ module Kernel
 end
 
 module Rns
+  # Error raised while importing methods
   class ImportError < StandardError
   end
 
+  # An internal class used to support Kernel#Rns in returning namespaces
   class Namespace
     class << self
+      # Use Kernel#Rns instead
       private :new
 
+      # Imports methods from objects into this namespace class as private instance methods.
       def import(imports)
         ns_methods = instance_methods()
         @_import_hash = array_to_key_value_tuples(imports).reduce({}) do |h, (obj, methods)|
@@ -37,12 +41,17 @@ module Rns
 
         file, line = import_call_site(caller)
         @_import_hash.each do |method, _|
+          # eval is needed because:
+          #   * Module#define_method can't delegate to methods that accept blocks
+          #   * method_missing can, but then imported methods are available publicly
           module_eval(delegate_to_hash_source(method, :@_import_hash), file, line - 1)
           private method
         end
       end
 
     private
+      # array_to_key_value_tuples([:a, {:b => 1, :c => 2}, :d])
+      # #=> [[:a, nil], [:b, 1], [:c, 2], [:d, nil]]
       def array_to_key_value_tuples(array)
         array.reduce([]) do |tuples, elem|
           if elem.is_a? Hash
@@ -53,6 +62,7 @@ module Rns
         end
       end
 
+      # Delegates all calls to a callable stored in an ivar of the class'es
       def delegate_to_hash_source(method_name, hash_name)
         <<-EOS
           def #{method_name}(*args, &block)
@@ -61,6 +71,8 @@ module Rns
         EOS
       end
 
+      # Given a backtrace, return the file/line where the user imported a method. Skip frames in
+      # Kernel#Rns since the user's import code will be in the frame afterwards.
       def import_call_site(backtrace)
         frame = backtrace.detect {|f| f !~ /in `Rns'$/ }
         file, line = frame.split(':', 2)
