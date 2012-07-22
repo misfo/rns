@@ -24,7 +24,7 @@ module Rns
             raise ImportError, "#{obj} cannot be imported into a Namespace because its class is not frozen"
           end
           (methods || obj.public_methods(false)).each do |method|
-            h[method.to_sym] = obj
+            h[method.to_sym] = obj.method(method)
           end
           h
         end
@@ -34,8 +34,7 @@ module Rns
         @_import_hash.each do |method, _|
           source = <<-EOS
             def #{method}(*args, &block)
-              reciever = self.class.instance_variable_get(:@_import_hash).fetch(:#{method})
-              reciever.__send__(:#{method}, *args, &block)
+              self.class.instance_variable_get(:@_import_hash).fetch(:#{method}).call(*args, &block)
             end
           EOS
           module_eval(source) #, file, line - 2)
