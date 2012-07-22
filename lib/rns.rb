@@ -29,10 +29,9 @@ module Rns
           h
         end
 
-        # file, line = caller[2].split(':', 2)
-        # line = line.to_i
+        file, line = import_call_site(caller)
         @_import_hash.each do |method, _|
-          module_eval(delegate_to_hash_source(method, :@_import_hash)) #, file, line - 2)
+          module_eval(delegate_to_hash_source(method, :@_import_hash), file, line - 1)
           private method
         end
       end
@@ -56,6 +55,11 @@ module Rns
         EOS
       end
 
+      def import_call_site(backtrace)
+        frame = backtrace.detect {|f| f !~ /in `Rns'$/ }
+        file, line = frame.split(':', 2)
+        [file, line.to_i]
+      end
     end
   end
 end
