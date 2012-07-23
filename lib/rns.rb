@@ -5,17 +5,19 @@ module Kernel
   #
   # * `imports` can be any number of other namespaces from which to import functions or hashes
   #   specifying which functions to import.
-  # * The block contains the functions to be `def`ed for the namespace.
+  # * The block contains the functions to be `def`ed for the namespace. Since namespaces are
+  #   immutable, instance variable and class variable cannot be set in functions.  In other
+  #   words, `@var = :something` will raise an error.
   #
   # Example:
   #
   #     StringManipulation = Rns(SomeOtherNs, AnotherNs => [:alternate_case]) do
-  #       def crazy_string(str)
+  #       def crazify(str)
   #         "#{alternate_case str}!"
   #       end
   #     end
   #
-  #     StringManipulation.crazy_string("whoa") #=> "WhOa!"
+  #     StringManipulation.crazify("whoa") #=> "WhOa!"
   #
   def Rns(*imports, &block)
     klass = Class.new(Rns::Namespace, &block)
